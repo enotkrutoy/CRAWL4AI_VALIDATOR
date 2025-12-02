@@ -1,6 +1,5 @@
 {
   "name": "red-team-osint-validator",
-  "private": true,
   "version": "2.1.0",
   "type": "module",
   "scripts": {
