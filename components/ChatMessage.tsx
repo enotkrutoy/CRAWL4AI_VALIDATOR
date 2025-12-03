@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Message, MessageRole } from '../types';
@@ -8,7 +8,7 @@ interface ChatMessageProps {
   message: Message;
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
+export const ChatMessage: React.FC<ChatMessageProps> = memo(({ message }) => {
   const isUser = message.role === MessageRole.USER;
 
   return (
@@ -62,7 +62,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
       </div>
     </div>
   );
-};
+});
 
 export const ThinkingBubble: React.FC = () => (
   <div className="flex w-full justify-start mb-4 animate-pulse">

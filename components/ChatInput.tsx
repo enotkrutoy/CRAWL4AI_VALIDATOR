@@ -6,6 +6,9 @@ interface ChatInputProps {
   disabled?: boolean;
 }
 
+const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
 export const ChatInput: React.FC<ChatInputProps> = ({ onSend, disabled }) => {
   const [input, setInput] = useState('');
   const [attachment, setAttachment] = useState<Attachment | null>(null);
@@ -33,19 +36,24 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, disabled }) => {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        // Remove data URL prefix (e.g., "data:image/jpeg;base64,")
-        const base64Content = base64String.split(',')[1];
-        setAttachment({
-          base64: base64Content,
-          mimeType: file.type
-        });
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      alert(`Файл слишком большой. Максимальный размер: ${MAX_FILE_SIZE_MB}MB`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      const base64Content = base64String.split(',')[1];
+      setAttachment({
+        base64: base64Content,
+        mimeType: file.type
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   const triggerFileSelect = () => {
@@ -143,7 +151,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, disabled }) => {
              <span>GoogleVision</span>
            </div>
            <div className="text-[10px] text-slate-600 font-mono">
-             v2.1-validator
+             v2.2-stable
            </div>
         </div>
       </div>

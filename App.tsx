@@ -17,11 +17,18 @@ const App: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Initialize session (load from storage or create new)
   useEffect(() => {
-    initNewSession();
+    // Only init if no session ID yet
+    if (!sessionState.sessionId) {
+        initSession();
+    }
   }, []);
 
-  const initNewSession = () => {
+  const initSession = () => {
+    // Attempt to load last session from localStorage via service logic (simplified for this demo)
+    // For now, we just create a new one for clean state or load if exists
+    // In a real app, we'd check URL params or a "load last" flag
     const newSessionId = sessionService.createSession();
     
     const greeting: Message = {
@@ -53,7 +60,22 @@ const App: React.FC = () => {
     if (sessionState.sessionId) {
       agentRunner.resetSession(sessionState.sessionId);
       sessionService.clearSession(sessionState.sessionId);
-      initNewSession();
+      // Force new session creation
+      const newSessionId = sessionService.createSession();
+      // Re-add greeting
+      const greeting: Message = {
+        id: uuidv4(),
+        role: MessageRole.ASSISTANT,
+        content: `### 🔄 Session Wiped
+Система перезагружена. Готов к новым задачам.`,
+        timestamp: Date.now()
+      };
+      sessionService.addMessage(newSessionId, greeting);
+      setSessionState({
+        sessionId: newSessionId,
+        messages: [greeting],
+        status: 'idle'
+      });
     }
   };
 
@@ -93,6 +115,12 @@ const App: React.FC = () => {
         timestamp: Date.now()
       };
 
+      // Initial add of assistant message (empty) to UI
+      setSessionState(prev => ({
+          ...prev,
+          messages: [...prev.messages, currentAssistantMsg]
+      }));
+
       // Pass attachment to the agent runner
       const stream = agentRunner.call_agent_async(sessionState.sessionId, content, attachment);
       
@@ -110,17 +138,13 @@ const App: React.FC = () => {
           groundingChunks: chunk.groundingChunks
         };
 
-        setSessionState(prev => {
-           const msgs = [...prev.messages];
-           const lastMsg = msgs[msgs.length - 1];
-           
-           if (lastMsg.role === MessageRole.USER) {
-             return { ...prev, messages: [...msgs, currentAssistantMsg] };
-           } else {
-             msgs[msgs.length - 1] = currentAssistantMsg;
-             return { ...prev, messages: msgs };
-           }
-        });
+        // Safer state update: Find by ID and update, rather than index reliance
+        setSessionState(prev => ({
+            ...prev,
+            messages: prev.messages.map(msg => 
+                msg.id === assistantMsgId ? currentAssistantMsg : msg
+            )
+        }));
       }
 
       sessionService.addMessage(sessionState.sessionId, currentAssistantMsg);
